@@ -945,6 +945,125 @@ local musclelgendloadCode = Scripts:Code({
 loadstring(game:HttpGet("https://raw.githubusercontent.com/ttvkaiser/Nebula-Hub/refs/heads/main/Muscle-Legends/.lua"))()]]
 })
 
+local freehtmlSection = Scripts:Section({ 
+    Title = "Free HTML Portfolio (change it how you want it)",
+    TextXAlignment = "Left",
+    TextSize = 15, -- Default Size
+})
+
+local htmlCode = Scripts:Code({
+    Title = "Free HTMl Portfolio Code",
+    Code = [[<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dev Help Portfolio</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f0f0f;
+      color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #1c1c1c;
+      padding: 40px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 48px;
+      margin: 0;
+      color: #00fff7;
+    }
+
+    p {
+      color: #aaa;
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    main {
+      padding: 40px 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    section {
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      color: #00fff7;
+      border-bottom: 2px solid #00fff7;
+      padding-bottom: 5px;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: #1c1c1c;
+      color: #555;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Developer Help Portfolio</h1>
+    <p>Helping others learn and build in Lua, HTML, and more.</p>
+  </header>
+
+  <main>
+
+    <section>
+      <h2>Name</h2>
+      <p>John Dev</p>
+    </section>
+
+    <section>
+      <h2>Skills</h2>
+      <ul>
+        <li>Roblox Lua Scripting</li>
+        <li>Game UI Design</li>
+        <li>Web Development (HTML, CSS, JS)</li>
+        <li>Key Systems & Exploit GUIs</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>How I Can Help</h2>
+      <ul>
+        <li>Fixing broken scripts</li>
+        <li>Creating GUIs for Roblox games</li>
+        <li>Explaining beginner-friendly code</li>
+        <li>Making HTML templates</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Contact</h2>
+      <p>Discord: @helpme#1234</p>
+      <p>Email: help.dev@example.com</p>
+    </section>
+
+  </main>
+
+  <footer>
+    &copy; 2025 Dev Help Portfolio. Copy and customize this layout freely.
+  </footer>
+
+</body>
+</html>]]
+})
+
 local miscSection2 = Misc:Section({ 
     Title = "Server Tools",
     TextXAlignment = "Left",

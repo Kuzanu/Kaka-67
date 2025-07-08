@@ -178,7 +178,7 @@ local Universal = Window:Tab({
     Locked = false,
 })
 
-local Player = Window:Tab({
+local Home = Window:Tab({
     Title = "Player",
     Icon = "user",
     Locked = false,
@@ -221,6 +221,97 @@ local Settings = Window:Tab({
 })
 
 Window:SelectTab(1)
+
+local WalkSpeedValue = 16
+local Player = game.Players.LocalPlayer
+local Humanoid = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+
+-- Update Humanoid reference on respawn
+Player.CharacterAdded:Connect(function(char)
+    Humanoid = char:WaitForChild("Humanoid")
+end)
+
+-- Slider setup
+local WalkSpeedSlider = Home:Slider({
+    Title = "Change WalkSpeed",
+    
+    Step = 1,
+    
+    Value = {
+        Min = 16,
+        Max = 500,
+        Default = 16,
+    },
+    
+    Callback = function(value)
+        WalkSpeedValue = value
+    end
+})
+
+-- Loop to maintain WalkSpeed bypassing anti-cheat resets
+task.spawn(function()
+    while task.wait(0.1) do
+        if Humanoid and Humanoid.WalkSpeed ~= WalkSpeedValue then
+            Humanoid.WalkSpeed = WalkSpeedValue
+        end
+    end
+end)
+
+local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+local InfJumpEnabled = false
+
+local InfJumpsToggle = Home:Toggle({
+    Title = "Infinite Jumps",
+    Desc = "Toggle infinite jump on/off",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        InfJumpEnabled = state
+        print("Infinite Jump Activated: " .. tostring(state))
+    end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if InfJumpEnabled then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+local Noclip = false
+local RunService = game:GetService("RunService")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+local NoclipToggle = Home:Toggle({
+    Title = "No Clip",
+    Desc = "Toggle noclip on/off",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        Noclip = state
+        print("No Clip Activated: " .. tostring(state))
+    end
+})
+
+RunService.Stepped:Connect(function()
+    if Noclip and character then
+        for _, v in pairs(character:GetDescendants()) do
+            if v:IsA("BasePart") and v.CanCollide == true then
+                v.CanCollide = false
+            end
+        end
+    end
+end)
+
+player.CharacterAdded:Connect(function(char)
+    character = char
+end)
 
 local statusParagraph = Status:Paragraph({
     Title = "Supported Games Status",

@@ -234,6 +234,21 @@ local Settings = Window:Tab({
 
 Window:SelectTab(1)
 
+local statusParagraph = Status:Paragraph({
+    Title = "Supported Games Status",
+    Desc = table.concat({
+        "🟢 Green | Universal — It hasn't been detected",
+        "🔴 Red | Blox Fruits — Rework on UI and fixing errors and passing the anti-cheat.",
+        "⬛ Black | Blade Ball — Game is dead",
+        "⬛ Black | Anime Last Stand — Stop being good, and was a waste of time",
+        "🟡 Yellow | Fisch — Almost finished",
+        "🔴 Red | Grow a Garden — Currently bypassing the anti cheat",
+        "🔴 Red | Steal A Brainrot — Currently bypassing the hard anti cheat. ETA: 2-9 weeks"
+    }, "\n"),
+    Color = "White",
+    Locked = false,
+})
+
 local infoooParagraph = Info:Paragraph({
     Title = "About This Script",
     Desc = 

@@ -190,18 +190,6 @@ local Visuals = Window:Tab({
     Locked = false,
 })
 
-local Combat = Window:Tab({
-    Title = "Combat",
-    Icon = "swords",
-    Locked = false,
-})
-
-local Movement = Window:Tab({
-    Title = "Movement",
-    Icon = "activity",
-    Locked = false,
-})
-
 local Status = Window:Tab({
     Title = "Status",
     Icon = "circle-plus",

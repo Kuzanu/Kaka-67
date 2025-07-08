@@ -222,6 +222,464 @@ local Settings = Window:Tab({
 
 Window:SelectTab(1)
 
+local flyingSection = Universal:Section({ 
+    Title = "Flying [V1] updates soon...",
+    TextXAlignment = "Left",
+    TextSize = 17, -- Default Size
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local HRP = character:WaitForChild("HumanoidRootPart")
+
+local flying = false
+local flySpeed = 100
+local BV, BG
+local movement = Vector3.zero
+
+-- Create slider
+local flySpeedSlider = Universal:Slider({
+    Title = "Change Fly Speed",
+    Step = 1,
+    Value = {
+        Min = 50,
+        Max = 1000,
+        Default = 100,
+    },
+    Callback = function(value)
+        flySpeed = value
+    end
+})
+
+-- Create toggle
+local flyToggle = Universal:Toggle({
+    Title = "Fly",
+    Desc = "Toggle fly mode with joystick/keyboard",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        flying = state
+        if flying then
+            startFly()
+        else
+            stopFly()
+        end
+    end
+})
+
+-- Movement handling (PC)
+local keys = {W = false, A = false, S = false, D = false}
+
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    local code = input.KeyCode
+    if code == Enum.KeyCode.W then keys.W = true end
+    if code == Enum.KeyCode.A then keys.A = true end
+    if code == Enum.KeyCode.S then keys.S = true end
+    if code == Enum.KeyCode.D then keys.D = true end
+end)
+
+UIS.InputEnded:Connect(function(input, gp)
+    if gp then return end
+    local code = input.KeyCode
+    if code == Enum.KeyCode.W then keys.W = false end
+    if code == Enum.KeyCode.A then keys.A = false end
+    if code == Enum.KeyCode.S then keys.S = false end
+    if code == Enum.KeyCode.D then keys.D = false end
+end)
+
+-- Start flying
+function startFly()
+    character = player.Character or player.CharacterAdded:Wait()
+    HRP = character:WaitForChild("HumanoidRootPart")
+
+    BV = Instance.new("BodyVelocity")
+    BV.Velocity = Vector3.zero
+    BV.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    BV.Parent = HRP
+
+    BG = Instance.new("BodyGyro")
+    BG.CFrame = HRP.CFrame
+    BG.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    BG.P = 1e5
+    BG.Parent = HRP
+
+    RunService:BindToRenderStep("FlyControl", Enum.RenderPriority.Input.Value, flyLoop)
+end
+
+-- Stop flying
+function stopFly()
+    RunService:UnbindFromRenderStep("FlyControl")
+    if BV then BV:Destroy() BV = nil end
+    if BG then BG:Destroy() BG = nil end
+end
+
+-- Movement loop
+function flyLoop()
+    if not character or not HRP then return end
+
+    local cam = workspace.CurrentCamera
+    local moveDir = Vector3.zero
+
+    -- Mobile joystick support
+    local inputVector = UIS:GetDeviceAcceleration() -- Default fallback
+    local moveInput = player.Character and player.Character:FindFirstChildOfClass("Humanoid") and player.Character:FindFirstChildOfClass("Humanoid").MoveDirection
+    if moveInput and moveInput.Magnitude > 0 then
+        moveDir = cam.CFrame:VectorToWorldSpace(Vector3.new(moveInput.X, 0, moveInput.Z))
+    end
+
+    -- Keyboard (PC)
+    if keys.W then moveDir += cam.CFrame.LookVector end
+    if keys.S then moveDir -= cam.CFrame.LookVector end
+    if keys.A then moveDir -= cam.CFrame.RightVector end
+    if keys.D then moveDir += cam.CFrame.RightVector end
+
+    if moveDir.Magnitude > 0 then
+        BV.Velocity = moveDir.Unit * flySpeed
+    else
+        BV.Velocity = Vector3.zero
+    end
+
+    BG.CFrame = cam.CFrame
+end
+
+local flingSection = Universal:Section({ 
+    Title = "Flinger/Fling [Doesnt really work]",
+    TextXAlignment = "Left",
+    TextSize = 17, -- Default Size
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+local flingPower = 150 -- Adjust how hard others get flung
+local active = false
+local connections = {}
+
+local function isOtherPlayer(part)
+	local char = part:FindFirstAncestorOfClass("Model")
+	if not char then return false end
+	local p = Players:GetPlayerFromCharacter(char)
+	return p and p ~= player
+end
+
+local function flingVictim(victim)
+	local hrp = victim:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		-- Apply strong outward and upward velocity
+		hrp.Velocity = (hrp.Position - player.Character.HumanoidRootPart.Position).Unit * flingPower + Vector3.new(0, flingPower, 0)
+	end
+end
+
+local function connectTouchedParts()
+	local character = player.Character or player.CharacterAdded:Wait()
+	for _, part in pairs(character:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local conn = part.Touched:Connect(function(hit)
+				if active and isOtherPlayer(hit) then
+					local victimChar = hit:FindFirstAncestorOfClass("Model")
+					if victimChar then
+						flingVictim(victimChar)
+					end
+				end
+			end)
+			table.insert(connections, conn)
+		end
+	end
+end
+
+local function disconnectAll()
+	for _, conn in pairs(connections) do
+		if conn and typeof(conn) == "RBXScriptConnection" then
+			conn:Disconnect()
+		end
+	end
+	connections = {}
+end
+
+local function startFling()
+	active = true
+	disconnectAll()
+	connectTouchedParts()
+end
+
+local function stopFling()
+	active = false
+	disconnectAll()
+end
+
+-- Reconnect after death
+player.CharacterAdded:Connect(function()
+	if active then
+		wait(1) -- give character time to load
+		connectTouchedParts()
+	end
+end)
+
+-- Your GUI toggle
+local flingToggle = Universal:Toggle({
+    Title = "Fling V1",
+    Desc = "Flings anyone that touches you",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state) 
+        if state then
+            startFling()
+        else
+            stopFling()
+        end
+    end
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local flingPower = 150
+local autoFlingRunning = false
+
+local function flingTarget(targetChar)
+	local hrp = targetChar:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		-- Fling with velocity
+		hrp.Velocity = Vector3.new(0, flingPower, 0) + (hrp.Position - player.Character.HumanoidRootPart.Position).Unit * flingPower
+	end
+end
+
+local function moveSlightly()
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		hrp.CFrame = hrp.CFrame * CFrame.new(1, 0, 0) -- Small movement to trigger .Touched
+	end
+end
+
+local function autoFlingLoop()
+	while autoFlingRunning do
+		local character = player.Character or player.CharacterAdded:Wait()
+		local hrp = character:WaitForChild("HumanoidRootPart")
+
+		for _, p in pairs(Players:GetPlayers()) do
+			if not autoFlingRunning then break end
+			if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+				local victimHRP = p.Character:FindFirstChild("HumanoidRootPart")
+
+				-- Teleport to target
+				hrp.CFrame = victimHRP.CFrame * CFrame.new(0, 0, 2)
+
+				wait(0.3)
+				moveSlightly() -- jiggle to trigger touch fling
+				flingTarget(p.Character)
+				wait(12) -- wait before moving to the next target
+			end
+		end
+	end
+end
+
+-- Toggle UI
+local autoFlingToggle = Universal:Toggle({
+    Title = "Auto Fling All",
+    Desc = "Teleports to everyone and flings them every 12 seconds",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        autoFlingRunning = state
+        if state then
+            task.spawn(autoFlingLoop)
+        end
+    end
+})
+
+local hotbkcSection = Universal:Section({ 
+    Title = "Hitboxes/Aimbot",
+    TextXAlignment = "Left",
+    TextSize = 17, -- Default Size
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local active = false
+local hitboxParts = {}
+
+-- Creates red box around another player's character
+local function createHitbox(player)
+    if player == LocalPlayer then return end
+    if hitboxParts[player] then return end
+    local char = player.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "ExpandHitbox"
+    box.Adornee = hrp
+    box.Size = Vector3.new(50, 50, 50) -- EXPANDED size
+    box.Color3 = Color3.fromRGB(255, 0, 0) -- red
+    box.Transparency = 0.2
+    box.ZIndex = 5
+    box.AlwaysOnTop = true
+    box.Parent = hrp
+
+    hitboxParts[player] = box
+end
+
+-- Removes red box from player
+local function removeHitbox(player)
+    if hitboxParts[player] then
+        hitboxParts[player]:Destroy()
+        hitboxParts[player] = nil
+    end
+end
+
+-- Toggle logic
+local function enableHitboxes()
+    for _, player in pairs(Players:GetPlayers()) do
+        createHitbox(player)
+    end
+
+    -- Update new characters live
+    Players.PlayerAdded:Connect(function(p)
+        p.CharacterAdded:Connect(function()
+            if active then
+                wait(1)
+                createHitbox(p)
+            end
+        end)
+    end)
+
+    -- Update live on character respawn
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            player.CharacterAdded:Connect(function()
+                if active then
+                    wait(1)
+                    createHitbox(player)
+                end
+            end)
+        end
+    end
+
+    -- Continuous refresh to attach to newly loaded HRPs
+    RunService.RenderStepped:Connect(function()
+        if not active then return end
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                if not hitboxParts[player] then
+                    createHitbox(player)
+                end
+            end
+        end
+    end)
+end
+
+local function disableHitboxes()
+    for player, box in pairs(hitboxParts) do
+        if box then box:Destroy() end
+    end
+    hitboxParts = {}
+end
+
+-- Your Toggle
+local expandhitbocToggle = Universal:Toggle({
+    Title = "Expand Hitbox",
+    Desc = "Expands a hitbox around everyone (not you)",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state) 
+        print("Expand Hitbox Activated: " .. tostring(state))
+        active = state
+        if state then
+            enableHitboxes()
+        else
+            disableHitboxes()
+        end
+    end
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local aiming = false
+local aimbotConnection
+
+-- Get the closest player
+local function getClosestPlayer()
+	local closest, shortestDistance = nil, math.huge
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local pos = player.Character.HumanoidRootPart.Position
+			local screenPoint, onScreen = Camera:WorldToViewportPoint(pos)
+			if onScreen then
+				local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - UIS:GetMouseLocation()).Magnitude
+				if distance < shortestDistance then
+					shortestDistance = distance
+					closest = player
+				end
+			end
+		end
+	end
+	return closest
+end
+
+-- Aim at the target’s head
+local function aimAt(target)
+	if target and target.Character then
+		local head = target.Character:FindFirstChild("Head") or target.Character:FindFirstChild("HumanoidRootPart")
+		if head then
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
+		end
+	end
+end
+
+-- Start the aimbot loop
+local function startAimbot()
+	aimbotConnection = RunService.RenderStepped:Connect(function()
+		local target = getClosestPlayer()
+		if target then
+			aimAt(target)
+		end
+	end)
+end
+
+-- Stop the aimbot loop
+local function stopAimbot()
+	if aimbotConnection then
+		aimbotConnection:Disconnect()
+		aimbotConnection = nil
+	end
+end
+
+-- Your Toggle UI
+local aimbotToggle = Universal:Toggle({
+    Title = "Aimbot",
+    Desc = "Locks onto the closest player",
+    Icon = "",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        print("Aimbot Activated: " .. tostring(state))
+        aiming = state
+        if state then
+            startAimbot()
+        else
+            stopAimbot()
+        end
+    end
+})
+
 local WalkSpeedValue = 16
 local Player = game.Players.LocalPlayer
 local Humanoid = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")

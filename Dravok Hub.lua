@@ -313,6 +313,96 @@ player.CharacterAdded:Connect(function(char)
     character = char
 end)
 
+-- Table to store ESP Highlights
+getgenv().PlayerESP = {}
+getgenv().ESPEnabled = false
+getgenv().ESPColor = Color3.fromRGB(0, 255, 0)
+
+-- Colorpicker
+local gughkColorpicker = Visuals:Colorpicker({
+    Title = "ESP Color",
+    Desc = "Color used for player ESP glow.",
+    Default = getgenv().ESPColor,
+    Transparency = 0,
+    Locked = false,
+    Callback = function(color)
+        getgenv().ESPColor = color
+        -- Update all ESP highlights
+        for _, highlight in pairs(getgenv().PlayerESP) do
+            if highlight and highlight:IsA("Highlight") then
+                highlight.OutlineColor = color
+            end
+        end
+    end
+})
+
+-- Toggle
+local playedpToggle = Visuals:Toggle({
+    Title = "Player ESP",
+    Desc = "Wraps players in a glowing outline.",
+    Icon = "eye",
+    Type = "Toggle",
+    Default = false,
+    Callback = function(state)
+        getgenv().ESPEnabled = state
+
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+
+        if state then
+            print("🟢 Player ESP Enabled")
+
+            -- Function to apply highlight
+            local function addHighlight(player)
+                if player == LocalPlayer then return end
+                if getgenv().PlayerESP[player] then return end
+
+                local char = player.Character or player.CharacterAdded:Wait()
+                local highlight = Instance.new("Highlight")
+                highlight.Adornee = char
+                highlight.FillTransparency = 1
+                highlight.OutlineColor = getgenv().ESPColor
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = game:GetService("CoreGui")
+
+                getgenv().PlayerESP[player] = highlight
+            end
+
+            -- ESP for all current players
+            for _, player in pairs(Players:GetPlayers()) do
+                addHighlight(player)
+            end
+
+            -- ESP for future players
+            getgenv().PlayerESPConnect = Players.PlayerAdded:Connect(function(player)
+                player.CharacterAdded:Connect(function()
+                    task.wait(0.5)
+                    addHighlight(player)
+                end)
+            end)
+
+        else
+            print("🔴 Player ESP Disabled")
+
+            -- Remove all highlights
+            for _, highlight in pairs(getgenv().PlayerESP) do
+                if highlight then
+                    highlight:Destroy()
+                end
+            end
+
+            getgenv().PlayerESP = {}
+
+            -- Disconnect connection
+            if getgenv().PlayerESPConnect then
+                getgenv().PlayerESPConnect:Disconnect()
+                getgenv().PlayerESPConnect = nil
+            end
+        end
+    end
+})
+
 local statusParagraph = Status:Paragraph({
     Title = "Supported Games Status",
     Desc = table.concat({

@@ -234,6 +234,32 @@ local Settings = Window:Tab({
 
 Window:SelectTab(1)
 
+local infoooParagraph = Info:Paragraph({
+    Title = "About This Script",
+    Desc = 
+        "🔹 Creator: Dravok Team\n" ..
+        "🔹 Version: 1.0.0\n" ..
+        "🔹 Description: This script provides useful toggles like Anti AFK, Anti Lag, " ..
+        "Position Lock, and Anti Fling to enhance your Roblox experience.\n" ..
+        "🔹 Support: Join our Discord for updates and support.\n",
+    Color = "Grey",
+    Image = "",       -- you can add an image URL or asset ID here
+    ImageSize = 30,
+    Thumbnail = "",   -- you can add a thumbnail URL or asset ID here
+    ThumbnailSize = 80,
+    Locked = false,
+    Buttons = {
+        {
+            Icon = "app-window-mac",
+            Title = "Join Discord",
+            Callback = function()
+                setclipboard("https://discord.gg/yourserver") -- replace with your Discord invite
+                print("Discord invite copied to clipboard!")
+            end,
+        }
+    }
+})
+
 local infoParagraph = Scripts:Paragraph({
     Title = "Script Disclaimer",
     Desc = "Some scripts shown here were not created by the Dravok Team. We carefully review and select them for safety and performance. Use only if you trust the script.",

@@ -315,159 +315,152 @@ end)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
 
--- Storage
 getgenv().ESPData = {}
 getgenv().ESPSettings = {
-    Outline = false,
-    Name = false,
-    Health = false,
-    Rainbow = false,
-    Color = Color3.fromRGB(0, 255, 0)
+	Outline = false,
+	Name = false,
+	Health = false,
+	Rainbow = false,
+	Color = Color3.fromRGB(0, 255, 0)
 }
 
--- Utilities
-local function getCharacter(player)
-    return player.Character or player.CharacterAdded:Wait()
-end
-
 local function removeESP(player)
-    if getgenv().ESPData[player] then
-        for _, v in pairs(getgenv().ESPData[player]) do
-            if v and v.Destroy then v:Destroy() end
-        end
-        getgenv().ESPData[player] = nil
-    end
+	if getgenv().ESPData[player] then
+		for _, v in pairs(getgenv().ESPData[player]) do
+			if v and v.Destroy then pcall(function() v:Destroy() end) end
+		end
+		getgenv().ESPData[player] = nil
+	end
 end
 
 local function createESP(player)
-    if player == Players.LocalPlayer then return end
-    if getgenv().ESPData[player] then return end
+	if player == Players.LocalPlayer then return end
+	if getgenv().ESPData[player] then return end
 
-    local char = getCharacter(player)
-    local head = char:WaitForChild("Head")
-    local hrp = char:WaitForChild("HumanoidRootPart")
+	local char = player.Character or player.CharacterAdded:Wait()
+	local head = char:WaitForChild("Head", 5)
+	local espParts = {}
 
-    local espParts = {}
+	if getgenv().ESPSettings.Outline then
+		local highlight = Instance.new("Highlight")
+		highlight.Adornee = char
+		highlight.FillTransparency = 1
+		highlight.OutlineTransparency = 0
+		highlight.OutlineColor = getgenv().ESPSettings.Color
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		highlight.Parent = char
+		espParts.Highlight = highlight
+	end
 
-    -- Highlight
-    if getgenv().ESPSettings.Outline then
-        local highlight = Instance.new("Highlight")
-        highlight.Adornee = char
-        highlight.FillTransparency = 1
-        highlight.OutlineTransparency = 0
-        highlight.OutlineColor = getgenv().ESPSettings.Color
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        highlight.Parent = CoreGui
-        espParts.Highlight = highlight
-    end
+	if getgenv().ESPSettings.Name then
+		local tag = Instance.new("BillboardGui")
+		tag.Adornee = head
+		tag.Size = UDim2.new(0, 100, 0, 20)
+		tag.StudsOffset = Vector3.new(0, 2.5, 0)
+		tag.AlwaysOnTop = true
 
-    -- Name Label
-    if getgenv().ESPSettings.Name then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Adornee = head
-        billboard.Size = UDim2.new(0, 100, 0, 20)
-        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
-        billboard.AlwaysOnTop = true
-        billboard.Name = "NameLabel"
+		local txt = Instance.new("TextLabel", tag)
+		txt.Size = UDim2.new(1, 0, 1, 0)
+		txt.BackgroundTransparency = 1
+		txt.Text = player.Name
+		txt.TextColor3 = Color3.new(1, 1, 1)
+		txt.TextStrokeTransparency = 0.5
+		txt.TextScaled = true
 
-        local nameLabel = Instance.new("TextLabel", billboard)
-        nameLabel.Size = UDim2.new(1, 0, 1, 0)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.Text = player.Name
-        nameLabel.TextStrokeTransparency = 0.5
-        nameLabel.TextScaled = true
-        billboard.Parent = CoreGui
-        espParts.NameLabel = billboard
-    end
+		tag.Parent = head
+		espParts.NameLabel = tag
+	end
 
-    -- Health Bar
-    if getgenv().ESPSettings.Health then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Adornee = head
-        billboard.Size = UDim2.new(0, 40, 0, 5)
-        billboard.StudsOffset = Vector3.new(0, 3.5, 0)
-        billboard.AlwaysOnTop = true
-        billboard.Name = "HealthBar"
+	if getgenv().ESPSettings.Health then
+		local barGui = Instance.new("BillboardGui")
+		barGui.Adornee = head
+		barGui.Size = UDim2.new(0, 40, 0, 5)
+		barGui.StudsOffset = Vector3.new(0, 3.5, 0)
+		barGui.AlwaysOnTop = true
 
-        local bg = Instance.new("Frame", billboard)
-        bg.Size = UDim2.new(1, 0, 1, 0)
-        bg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        bg.BorderSizePixel = 0
+		local bg = Instance.new("Frame", barGui)
+		bg.Size = UDim2.new(1, 0, 1, 0)
+		bg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		bg.BorderSizePixel = 0
 
-        local fg = Instance.new("Frame", billboard)
-        fg.Size = UDim2.new(1, 0, 1, 0)
-        fg.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        fg.BorderSizePixel = 0
-        fg.Name = "HealthFill"
+		local fg = Instance.new("Frame", barGui)
+		fg.Name = "HealthFill"
+		fg.Size = UDim2.new(1, 0, 1, 0)
+		fg.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+		fg.BorderSizePixel = 0
 
-        billboard.Parent = CoreGui
-        espParts.HealthBar = billboard
+		barGui.Parent = head
+		espParts.HealthBar = barGui
 
-        -- Health update
-        task.spawn(function()
-            local humanoid = char:WaitForChild("Humanoid")
-            while billboard and billboard.Parent do
-                local hpPercent = humanoid.Health / humanoid.MaxHealth
-                fg.Size = UDim2.new(math.clamp(hpPercent, 0, 1), 0, 1, 0)
-                if hpPercent > 0.5 then
-                    fg.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-                elseif hpPercent > 0.25 then
-                    fg.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-                else
-                    fg.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-                end
-                task.wait(0.2)
-            end
-        end)
-    end
+		task.spawn(function()
+			local hum = char:WaitForChild("Humanoid", 5)
+			while hum and hum.Parent and barGui and barGui.Parent do
+				local hp = hum.Health / hum.MaxHealth
+				fg.Size = UDim2.new(math.clamp(hp, 0, 1), 0, 1, 0)
 
-    getgenv().ESPData[player] = espParts
+				if hp > 0.5 then
+					fg.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+				elseif hp > 0.25 then
+					fg.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+				else
+					fg.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+				end
+
+				task.wait(0.2)
+			end
+		end)
+	end
+
+	getgenv().ESPData[player] = espParts
+
+	player.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		removeESP(player)
+		createESP(player)
+	end)
 end
 
--- Rainbow Color Updater
-RunService.Heartbeat:Connect(function()
-    if not getgenv().ESPSettings.Rainbow then return end
-    local t = tick()
-    local hue = (t % 5) / 5
-    local color = Color3.fromHSV(hue, 1, 1)
-    for _, playerData in pairs(getgenv().ESPData) do
-        if playerData.Highlight then
-            playerData.Highlight.OutlineColor = color
-        end
-    end
-end)
-
--- Player Management
 local function setupESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        createESP(player)
-    end
-    getgenv().ESPPlayerAdded = Players.PlayerAdded:Connect(function(player)
-        player.CharacterAdded:Connect(function()
-            task.wait(0.5)
-            createESP(player)
-        end)
-    end)
+	for _, player in pairs(Players:GetPlayers()) do
+		task.spawn(function()
+			createESP(player)
+		end)
+	end
+
+	if getgenv().ESPPlayerAdded then getgenv().ESPPlayerAdded:Disconnect() end
+	getgenv().ESPPlayerAdded = Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function()
+			task.wait(0.5)
+			createESP(player)
+		end)
+	end)
 end
 
 local function clearAllESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        removeESP(player)
-    end
-    if getgenv().ESPPlayerAdded then
-        getgenv().ESPPlayerAdded:Disconnect()
-        getgenv().ESPPlayerAdded = nil
-    end
+	for _, player in pairs(Players:GetPlayers()) do
+		removeESP(player)
+	end
+	if getgenv().ESPPlayerAdded then
+		getgenv().ESPPlayerAdded:Disconnect()
+		getgenv().ESPPlayerAdded = nil
+	end
 end
 
--- GUI Toggles
+RunService.Heartbeat:Connect(function()
+	if not getgenv().ESPSettings.Rainbow then return end
+	local hue = (tick() % 5) / 5
+	local color = Color3.fromHSV(hue, 1, 1)
+	for _, v in pairs(getgenv().ESPData) do
+		if v.Highlight then
+			v.Highlight.OutlineColor = color
+		end
+	end
+end)
 
-local shaColorpicker = Visuals:Colorpicker({
+local Colorpicker = Visuals:Colorpicker({
     Title = "ESP Color",
-    Desc = "Default ESP color",
+    Desc = "Set the outline color.",
     Default = getgenv().ESPSettings.Color,
     Callback = function(c)
         getgenv().ESPSettings.Color = c
@@ -479,11 +472,12 @@ local shaColorpicker = Visuals:Colorpicker({
     end
 })
 
-local outloneToggle = Visuals:Toggle({
+local Toggle_Outline = Visuals:Toggle({
     Title = "Outline ESP",
-    Desc = "Toggle glowing player ESP",
+    Desc = "Glow around players",
     Icon = "eye",
     Type = "Checkbox",
+    Default = false,
     Callback = function(state)
         getgenv().ESPSettings.Outline = state
         clearAllESP()
@@ -491,11 +485,12 @@ local outloneToggle = Visuals:Toggle({
     end
 })
 
-local namelabelToggle = Visuals:Toggle({
+local Toggle_Name = Visuals:Toggle({
     Title = "Name Labels",
-    Desc = "Toggle name display above players",
+    Desc = "Shows names above players",
     Icon = "user",
     Type = "Checkbox",
+    Default = false,
     Callback = function(state)
         getgenv().ESPSettings.Name = state
         clearAllESP()
@@ -503,11 +498,12 @@ local namelabelToggle = Visuals:Toggle({
     end
 })
 
-local healthToggle = Visuals:Toggle({
+local Toggle_Health = Visuals:Toggle({
     Title = "Health Bars",
-    Desc = "Toggle health bar display",
+    Desc = "Shows HP bars",
     Icon = "heart",
     Type = "Checkbox",
+    Default = false,
     Callback = function(state)
         getgenv().ESPSettings.Health = state
         clearAllESP()
@@ -515,11 +511,12 @@ local healthToggle = Visuals:Toggle({
     end
 })
 
-local rainbowToggle = VisualsTab:Toggle({
-    Title = "Rainbow Glow",
-    Desc = "Animated color highlight",
+local Toggle_Rainbow = Visuals:Toggle({
+    Title = "Rainbow Outline",
+    Desc = "Rainbow effect on glow",
     Icon = "star",
     Type = "Checkbox",
+    Default = false,
     Callback = function(state)
         getgenv().ESPSettings.Rainbow = state
     end
